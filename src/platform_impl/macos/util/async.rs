@@ -101,6 +101,19 @@ pub unsafe fn set_frame_top_left_point_async(ns_window: &NSWindow, point: NSPoin
   });
 }
 
+// `setFrameTopLeftPoint:` isn't thread-safe, but fortunately has the courtesy
+// to log errors.
+pub unsafe fn set_frame_top_left_point_sync(ns_window: &NSWindow, point: NSPoint) {
+  if is_main_thread() {
+    ns_window.setFrameTopLeftPoint(point);
+  } else {
+    let ns_window = MainThreadSafe(ns_window.retain());
+    DispatchQueue::main().exec_sync(move || {
+      ns_window.setFrameTopLeftPoint(point);
+    })
+  }
+}
+
 // `setFrameTopLeftPoint:` isn't thread-safe, and fails silently.
 pub unsafe fn set_level_async(ns_window: &NSWindow, level: ffi::NSWindowLevel) {
   let ns_window = MainThreadSafe(ns_window.retain());
